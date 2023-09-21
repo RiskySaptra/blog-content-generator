@@ -5,11 +5,11 @@ import {
   Container,
   Typography,
   Button,
-  ButtonGroup,
   Autocomplete,
+  Divider,
+  Grid,
 } from "@mui/material";
-import PostList from "@components/components/postList";
-import BasicTable from "@components/components/postTable";
+import BasicTable from "@components/postTable";
 
 const CreatePost = `
 mutation CreatePost($content: RichTextAST!, $date: Date!, $tag: Tag, $slug: String!, $title: String!) {
@@ -239,35 +239,40 @@ export default function Home() {
       <main>
         <Container fixed>
           <Box width={1} justifyContent="center" alignItems="center">
-            <Typography textAlign="center" variant="h2" gutterBottom>
+            <Typography textAlign="center" variant="h4" gutterBottom>
               Hygraph Article Generator !!
             </Typography>
+            <Divider />
           </Box>
           <Box
             display="flex"
-            marginTop={10}
+            marginTop={3}
             flexDirection="column"
             justifyContent="center"
-            gap={5}
+            gap={2}
           >
-            <Box display="flex" flexDirection="row" gap={2}>
-              <GenerateArticleForm />
-              <Box
-                display="flex"
-                flexDirection="column"
-                boxShadow={2}
-                borderRadius={2}
-                padding={3}
-                gap={2}
-                width={1}
-              >
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    Empty Space (use for preview)
-                  </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <GenerateArticleForm />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Box
+                  display="flex"
+                  flexDirection="column"
+                  boxShadow={2}
+                  borderRadius={2}
+                  padding={3}
+                  minHeight={200}
+                >
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      Empty Space (use for preview)
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </Box>
+              </Grid>
+            </Grid>
+
             <ArticleList />
           </Box>
         </Container>
@@ -285,11 +290,15 @@ const GenerateArticleForm = () => {
       borderRadius={2}
       padding={3}
       gap={2}
-      width={1}
+      minHeight={200}
     >
-      <Typography variant="h6" gutterBottom>
-        Generate Article By Topic
-      </Typography>
+      <Box>
+        <Typography variant="h6" gutterBottom>
+          Generate Article By Topic
+        </Typography>
+        <Divider />
+      </Box>
+
       <Box display="flex" flexDirection="row" gap={2}>
         <Box display="flex" flexDirection="column" gap={2} width={1}>
           <TextField size="small" id="topic" label="Topic" variant="outlined" />
@@ -310,9 +319,24 @@ const GenerateArticleForm = () => {
           />
         </Box>
       </Box>
-      <Button variant="contained" onClick={createPost}>
-        Generate
-      </Button>
+      <Box display="flex" gap={1}>
+        <Button
+          size="small"
+          variant="contained"
+          color="success"
+          onClick={createPost}
+        >
+          Generate
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
+          color="info"
+          onClick={createPost}
+        >
+          Reset Field
+        </Button>
+      </Box>
     </Box>
   );
 };
@@ -327,50 +351,49 @@ const ArticleList = () => {
       padding={3}
       gap={2}
     >
-      <Typography variant="h6" gutterBottom>
-        Article List
-      </Typography>
-      <Box display="flex" gap={2} width={1}>
-        <TextField size="small" id="search" label="Search" variant="outlined" />
+      <Box>
+        <Typography variant="h6" gutterBottom>
+          Article List
+        </Typography>
+        <Divider />
+      </Box>
+
+      <Box display="flex" flexDirection="row" flexWrap="wrap" gap={2}>
+        <TextField
+          sx={{ minWidth: 294 }}
+          size="small"
+          id="search"
+          label="Search"
+          variant="outlined"
+        />
         <Autocomplete
-          fullWidth={true}
+          sx={{ minWidth: 294 }}
           size="small"
           disablePortal
           options={["Draft", "Published"]}
-          sx={{ width: 300 }}
           renderInput={(params) => (
             <TextField size="small" {...params} label="Stage" />
           )}
         />
         <Autocomplete
-          fullWidth={true}
+          sx={{ minWidth: 294 }}
           size="small"
           disablePortal
           options={["All", "Draft", "Published"]}
-          sx={{ width: 300 }}
           renderInput={(params) => (
             <TextField size="small" {...params} label="Tag" />
           )}
         />
-        <Button size="small" variant="contained" color="warning">
-          Clear Filter
-        </Button>
-        <Button size="small" variant="contained">
-          Set Filter
-        </Button>
+        <Box display="flex" gap={1}>
+          <Button size="small" variant="contained">
+            Set Filter
+          </Button>
+          <Button size="small" variant="contained" color="warning">
+            Clear Filter
+          </Button>
+        </Box>
       </Box>
-      {/* <PostList /> */}
       <BasicTable />
-      <ButtonGroup
-        size="small"
-        variant="contained"
-        color="warning"
-        fullWidth={true}
-      >
-        <Button color="info">Set To Publish</Button>
-        <Button color="warning">Set To Draft</Button>
-        <Button color="error">Delete</Button>
-      </ButtonGroup>
     </Box>
   );
 };
