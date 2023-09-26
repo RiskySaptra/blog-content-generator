@@ -10,6 +10,9 @@ import {
   Grid,
 } from "@mui/material";
 import BasicTable from "@components/postTable";
+import ReactMarkdown from "react-markdown";
+import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { useState } from "react";
 
 const CreatePost = `
 mutation CreatePost($content: RichTextAST!, $date: Date!, $tag: Tag, $slug: String!, $title: String!) {
@@ -228,6 +231,94 @@ async function createPost() {
 }
 
 export default function Home() {
+  const [result, setResult] = useState("");
+  const fetchData = async () => {
+    const ctrl = new AbortController();
+    await fetchEventSource(`https://api.openai.com/v1/chat/completions`, {
+      method: "POST",
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo-16k",
+        messages: [
+          {
+            role: "system",
+            content: "write me article about",
+          },
+          {
+            role: "user",
+            content: "all golang framework",
+          },
+          {
+            role: "system",
+            content: "add pros and cons for each framework",
+          },
+          {
+            role: "user",
+            content: "add diagram",
+          },
+          // {
+          //   role: "user",
+          //   content: "add as a title learning series",
+          // },
+          // {
+          //   role: "user",
+          //   content: "in bahasa indonesia",
+          // },
+          {
+            role: "user",
+            content: "response with markdown",
+          },
+        ],
+        temperature: 0,
+        stream: true,
+      }),
+      headers: {
+        Accept: "text/event-stream",
+        "Content-Type": "application/json",
+        Authorization:
+          "Bearer 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",
+      },
+      signal: ctrl.signal,
+      onopen(res) {
+        if (res.ok && res.status === 200) {
+          console.log("Connection made ", res);
+        } else if (
+          res.status >= 400 &&
+          res.status < 500 &&
+          res.status !== 429
+        ) {
+          console.log("Client side error ", res);
+        }
+      },
+      onmessage(event) {
+        if (event.data != "[DONE]") {
+          let payload = JSON.parse(event.data);
+          let text = payload.choices[0].delta.content;
+          if (text != "\n") {
+            console.log(payload);
+            if (payload.choices[0].finish_reason === "stop") {
+              ctrl.abort();
+            } else {
+              setResult((prev) => prev + text);
+            }
+          }
+        } else {
+          ctrl.abort();
+        }
+      },
+      onclose() {
+        console.log("Connection closed by the server");
+      },
+      onerror(err) {
+        console.log("There was an error from server", err);
+        if (err instanceof FatalError) {
+          throw err; // rethrow to stop the operation
+        } else {
+          // do nothing to automatically retry. You can also
+          // return a specific retry interval here.
+        }
+      },
+    });
+  };
   return (
     <>
       <Head>
@@ -264,15 +355,106 @@ export default function Home() {
                   padding={3}
                   minHeight={200}
                 >
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      Empty Space (use for preview)
-                    </Typography>
-                  </Box>
+                  {/* <Box>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="success"
+                      onClick={fetchData}
+                    >
+                      Generate
+                    </Button>
+                    <ReactMarkdown>{result}</ReactMarkdown>
+                  </Box> */}
                 </Box>
               </Grid>
             </Grid>
-
+            <Box
+              display="flex"
+              flexDirection="column"
+              boxShadow={2}
+              borderRadius={2}
+              padding={3}
+            >
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                onClick={fetchData}
+              >
+                Generate
+              </Button>
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => (
+                    <Typography sx={{ mt: 1 }}>{children}</Typography>
+                  ),
+                  del: ({ children }) => (
+                    <Typography sx={{ mt: 1, textDecoration: "line-through" }}>
+                      {children}
+                    </Typography>
+                  ),
+                  em: ({ children }) => (
+                    <Typography sx={{ mt: 1, fontStyle: "italic" }}>
+                      {children}
+                    </Typography>
+                  ),
+                  strong: ({ children }) => (
+                    <Typography
+                      variant={"strong"}
+                      sx={{ mt: 1, fontWeight: "bold" }}
+                    >
+                      {children}
+                    </Typography>
+                  ),
+                  b: ({ children }) => (
+                    <Typography sx={{ mt: 1, fontWeight: "bold" }}>
+                      {children}
+                    </Typography>
+                  ),
+                  h1: ({ children }) => (
+                    <Typography
+                      gutterBottom
+                      sx={{ mt: 2, fontSize: 35 }}
+                      variant={"h1"}
+                    >
+                      {children}
+                    </Typography>
+                  ),
+                  h2: ({ children }) => (
+                    <Typography
+                      gutterBottom
+                      sx={{ mt: 2, fontSize: 35 }}
+                      variant={"h2"}
+                    >
+                      {children}
+                    </Typography>
+                  ),
+                  h3: ({ children }) => (
+                    <Typography gutterBottom sx={{ mt: 2 }} variant={"h3"}>
+                      {children}
+                    </Typography>
+                  ),
+                  h4: ({ children }) => (
+                    <Typography gutterBottom sx={{ mt: 2 }} variant={"h4"}>
+                      {children}
+                    </Typography>
+                  ),
+                  h5: ({ children }) => (
+                    <Typography gutterBottom sx={{ mt: 2 }} variant={"h5"}>
+                      {children}
+                    </Typography>
+                  ),
+                  h6: ({ children }) => (
+                    <Typography gutterBottom sx={{ mt: 2 }} variant={"h6"}>
+                      {children}
+                    </Typography>
+                  ),
+                }}
+              >
+                {result}
+              </ReactMarkdown>
+            </Box>
             <ArticleList />
           </Box>
         </Container>
@@ -320,14 +502,14 @@ const GenerateArticleForm = () => {
         </Box>
       </Box>
       <Box display="flex" gap={1}>
-        <Button
+        {/* <Button
           size="small"
           variant="contained"
           color="success"
-          onClick={createPost}
+          onClick={fetchData}
         >
           Generate
-        </Button>
+        </Button> */}
         <Button
           size="small"
           variant="contained"
