@@ -274,8 +274,7 @@ export default function Home() {
       headers: {
         Accept: "text/event-stream",
         "Content-Type": "application/json",
-        Authorization:
-          "Bearer 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",
+        Authorization: "Bearer " + process.env.OPEN_API,
       },
       signal: ctrl.signal,
       onopen(res) {
