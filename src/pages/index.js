@@ -230,93 +230,47 @@ async function createPost() {
   return data;
 }
 
+const listenSSE = (callback) => {
+  const eventSource = new EventSource("/api/generate-blog", {
+    withCredentials: true,
+  });
+  console.info("Listenting on SEE", eventSource);
+  // eventSource.close();
+  eventSource.onmessage = (event) => {
+    const result = callback(event);
+    if (result?.cancel) {
+      console.info("Closing SSE");
+      eventSource.close();
+    }
+  };
+
+  return {
+    close: () => {
+      console.info("Closing SSE");
+      eventSource.close();
+    },
+  };
+};
+
 export default function Home() {
   const [result, setResult] = useState("");
-  const fetchData = async () => {
-    const ctrl = new AbortController();
-    await fetchEventSource(`https://api.openai.com/v1/chat/completions`, {
-      method: "POST",
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo-16k",
-        messages: [
-          {
-            role: "system",
-            content: "write me article about",
-          },
-          {
-            role: "user",
-            content: "all golang framework",
-          },
-          {
-            role: "system",
-            content: "add pros and cons for each framework",
-          },
-          {
-            role: "user",
-            content: "add diagram",
-          },
-          // {
-          //   role: "user",
-          //   content: "add as a title learning series",
-          // },
-          // {
-          //   role: "user",
-          //   content: "in bahasa indonesia",
-          // },
-          {
-            role: "user",
-            content: "response with markdown",
-          },
-        ],
-        temperature: 0,
-        stream: true,
-      }),
-      headers: {
-        Accept: "text/event-stream",
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + process.env.OPEN_API,
-      },
-      signal: ctrl.signal,
-      onopen(res) {
-        if (res.ok && res.status === 200) {
-          console.log("Connection made ", res);
-        } else if (
-          res.status >= 400 &&
-          res.status < 500 &&
-          res.status !== 429
-        ) {
-          console.log("Client side error ", res);
-        }
-      },
-      onmessage(event) {
-        if (event.data != "[DONE]") {
-          let payload = JSON.parse(event.data);
-          let text = payload.choices[0].delta.content;
-          if (text != "\n") {
-            console.log(payload);
-            if (payload.choices[0].finish_reason === "stop") {
-              ctrl.abort();
-            } else {
-              setResult((prev) => prev + text);
-            }
-          }
-        } else {
-          ctrl.abort();
-        }
-      },
-      onclose() {
-        console.log("Connection closed by the server");
-      },
-      onerror(err) {
-        console.log("There was an error from server", err);
-        if (err instanceof FatalError) {
-          throw err; // rethrow to stop the operation
-        } else {
-          // do nothing to automatically retry. You can also
-          // return a specific retry interval here.
-        }
-      },
-    });
+
+  const fetchData = () => {
+    setResult("");
+    const events = new EventSource("/api/generate-blog");
+    events.onmessage = (event) => {
+      if (event.data === "Done") return events.close();
+      const parsedData = JSON.parse(event.data);
+      if (parsedData.error) {
+        // error handeler
+        console.log(parsedData.error.message);
+        return events.close();
+      }
+      const text = parsedData.choices[0].delta.content;
+      if (text != "\n") {
+        setResult((prev) => prev + text);
+      }
+    };
   };
   return (
     <>
@@ -379,7 +333,7 @@ export default function Home() {
                 size="small"
                 variant="contained"
                 color="success"
-                onClick={fetchData}
+                onClick={() => fetchData()}
               >
                 Generate
               </Button>
